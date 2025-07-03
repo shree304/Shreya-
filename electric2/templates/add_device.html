@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Add Device{% endblock %}
+
+{% block header %}Add New Device{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Device Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Device Type</label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="climate">Climate (AC/Heater)</option>
+                            <option value="appliance">Appliance</option>
+                            <option value="lighting">Lighting</option>
+                            <option value="office">Office Equipment</option>
+                            <option value="transport">EV Charger</option>
+                            <option value="generation">Solar Generation</option>
+                            <option value="storage">Battery Storage</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Device</button>
+                    <a href="{{ url_for('devices') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

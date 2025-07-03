@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Add Automation Rule{% endblock %}
+
+{% block header %}
+<div class="d-flex justify-content-between align-items-center">
+    <h2>Add New Automation Rule</h2>
+    <a href="{{ url_for('automation') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Rules
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" class="needs-validation" novalidate>
+                    <div class="row">
+                        <!-- Basic Information -->
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Rule Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                            <div class="invalid-feedback">
+                                Please provide a name for this rule.
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="1"></textarea>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Condition Section -->
+                    <div class="mb-4">
+                        <h5 class="mb-3"><i class="bi bi-input-cursor-text me-2"></i>Condition</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="condition_type" class="form-label">Condition Type *</label>
+                                <select class="form-select" id="condition_type" name="condition_type" required>
+                                    <option value="" selected disabled>Select condition type</option>
+                                    <option value="time">Time of Day</option>
+                                    <option value="price">Electricity Price Threshold</option>
+                                    <option value="solar">Solar Production Level</option>
+                                    <option value="battery">Battery Storage Level</option>
+                                    <option value="device">Device Status</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    Please select a condition type.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="condition_value" class="form-label">Condition Value *</label>
+                                <div id="condition_value_container">
+                                    <input type="text" class="form-control" id="condition_value" name="condition_value" required disabled>
+                                    <div class="invalid-feedback">
+                                        Please provide a value for this condition.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> The rule will trigger when this condition is met.
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Action Section -->
+                    <div class="mb-4">
+                        <h5 class="mb-3"><i class="bi bi-gear me-2"></i>Action</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="action_type" class="form-label">Action Type *</label>
+                                <select class="form-select" id="action_type" name="action_type" required>
+                                    <option value="" selected disabled>Select action type</option>
+                                    <option value="turn_on">Turn On Device</option>
+                                    <option value="turn_off">Turn Off Device</option>
+                                    <option value="adjust">Adjust Device Setting</option>
+                                    <option value="notify">Send Notification</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    Please select an action type.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="action_value" class="form-label">Action Value</label>
+                                <input type="text" class="form-control" id="action_value" name="action_value">
+                                <small class="text-muted">Required for "Adjust" actions (e.g., "72°F")</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="device_id" class="form-label">Target Device *</label>
+                            <select class="form-select" id="device_id" name="device_id" required>
+                                <option value="" selected disabled>Select a device</option>
+                                {% for device in devices %}
+                                <option value="{{ device.id }}">{{ device.name }} ({{ device.type }})</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a target device.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <button type="reset" class="btn btn-outline-secondary me-md-2">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Automation Rule
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Enable condition value field when type is selected
+    document.getElementById('condition_type').addEventListener('change', function() {
+        const conditionValue = document.getElementById('condition_value');
+        conditionValue.disabled = false;
+        
+        // Set placeholder based on condition type
+        switch(this.value) {
+            case 'time':
+                conditionValue.placeholder = 'e.g., 18:30 or "sunset"';
+                break;
+            case 'price':
+                conditionValue.placeholder = 'e.g., 0.15 (price per kWh)';
+                break;
+            case 'solar':
+                conditionValue.placeholder = 'e.g., 1.5 (kW production)';
+                break;
+            case 'battery':
+                conditionValue.placeholder = 'e.g., 30 (percent)';
+                break;
+            case 'device':
+                conditionValue.placeholder = 'e.g., "on" or "off"';
+                break;
+            default:
+                conditionValue.placeholder = 'Enter condition value';
+        }
+    });
+
+    // Form validation
+    (function () {
+        'use strict'
+        const forms = document.querySelectorAll('.needs-validation')
+        
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %}

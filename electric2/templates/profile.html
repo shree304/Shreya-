@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile{% endblock %}
+
+{% block header %}
+<div class="d-flex justify-content-between align-items-center">
+    <h2>User Profile</h2>
+    <span class="badge bg-primary">
+        <i class="bi bi-person-circle"></i> {{ current_user.username }}
+    </span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-person-lines-fill"></i> Account Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('update_profile') }}" class="needs-validation" novalidate>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" value="{{ current_user.username }}" disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email Address *</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}" required>
+                            <div class="invalid-feedback">
+                                Please provide a valid email address.
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h5 class="mb-3"><i class="bi bi-shield-lock"></i> Change Password</h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="current_password" class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="current_password" name="current_password">
+                            <small class="text-muted">Required for password changes</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password">
+                            <div class="password-strength mt-1">
+                                <div class="progress" style="height: 5px;">
+                                    <div class="progress-bar" id="password-strength-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <small id="password-strength-text" class="text-muted"></small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="confirm_password" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password">
+                            <div class="invalid-feedback" id="password-match-feedback">
+                                Passwords do not match.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Update Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Energy Stats</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Devices Registered</span>
+                        <span class="badge bg-primary rounded-pill">{{ devices|length }}</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Active Automations</span>
+                        <span class="badge bg-success rounded-pill">{{ active_automations }}</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Total Alerts</span>
+                        <span class="badge bg-warning rounded-pill">{{ total_alerts }}</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Implemented Recommendations</span>
+                        <span class="badge bg-info rounded-pill">{{ implemented_recommendations }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> System Settings</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Theme Preference</label>
+                    <select class="form-select">
+                        <option selected>Light Theme</option>
+                        <option>Dark Theme</option>
+                        <option>System Default</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notification Preferences</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="email-notifications" checked>
+                        <label class="form-check-label" for="email-notifications">
+                            Email Notifications
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="push-notifications" checked>
+                        <label class="form-check-label" for="push-notifications">
+                            Push Notifications
+                        </label>
+                    </div>
+                </div>
+                <button class="btn btn-outline-primary w-100 mt-2">
+                    <i class="bi bi-bell"></i> Update Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Password strength indicator
+    document.getElementById('new_password').addEventListener('input', function() {
+        const password = this.value;
+        const strengthBar = document.getElementById('password-strength-bar');
+        const strengthText = document.getElementById('password-strength-text');
+        
+        // Calculate strength (simple example)
+        let strength = 0;
+        if (password.length > 0) strength += 20;
+        if (password.length >= 8) strength += 30;
+        if (/[A-Z]/.test(password)) strength += 20;
+        if (/[0-9]/.test(password)) strength += 20;
+        if (/[^A-Za-z0-9]/.test(password)) strength += 10;
+        
+        // Update UI
+        strengthBar.style.width = strength + '%';
+        
+        // Set color and text based on strength
+        if (strength < 40) {
+            strengthBar.className = 'progress-bar bg-danger';
+            strengthText.textContent = 'Weak';
+            strengthText.className = 'text-danger';
+        } else if (strength < 70) {
+            strengthBar.className = 'progress-bar bg-warning';
+            strengthText.textContent = 'Moderate';
+            strengthText.className = 'text-warning';
+        } else {
+            strengthBar.className = 'progress-bar bg-success';
+            strengthText.textContent = 'Strong';
+            strengthText.className = 'text-success';
+        }
+    });
+
+    // Password confirmation check
+    document.getElementById('confirm_password').addEventListener('input', function() {
+        const confirmPassword = this.value;
+        const newPassword = document.getElementById('new_password').value;
+        const feedback = document.getElementById('password-match-feedback');
+        
+        if (confirmPassword && newPassword && confirmPassword !== newPassword) {
+            this.classList.add('is-invalid');
+            feedback.style.display = 'block';
+        } else {
+            this.classList.remove('is-invalid');
+            feedback.style.display = 'none';
+        }
+    });
+
+    // Form validation
+    (function () {
+        'use strict'
+        const forms = document.querySelectorAll('.needs-validation')
+        
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %}

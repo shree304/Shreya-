@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts{% endblock %}
+
+{% block header %}Energy Alerts{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Your Alerts</h5>
+    </div>
+    <div class="card-body">
+        <div class="list-group">
+            {% for alert in alerts %}
+            <div class="list-group-item alert-{{ alert.severity }}">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6>{{ alert.message }}</h6>
+                        <small class="text-muted">{{ alert.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </div>
+                    <span class="badge bg-{% if alert.severity == 'high' %}danger{% elif alert.severity == 'medium' %}warning{% else %}success{% endif %}">
+                        {{ alert.severity|capitalize }}
+                    </span>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <p>No alerts to display.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Assistant - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .summary-card {
+            text-align: center;
+            padding: 15px;
+        }
+        .summary-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .summary-label {
+            color: #6c757d;
+        }
+        .alert-card {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .device-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .device-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+        .positive {
+            color: #28a745;
+        }
+        .negative {
+            color: #dc3545;
+        }
+        .chart-container {
+            height: 300px;
+        }
+        .nav-link.active {
+            font-weight: bold;
+            border-bottom: 2px solid #0d6efd;
+        }
+        .battery-status {
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .battery-progress {
+            height: 100%;
+            background-color: #20c997;
+            width: 72%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">Energy Assistant</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('devices') }}">Devices</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('recommendations') }}">Recommendations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('automation') }}">Automation</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('alerts') }}">Alerts</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> User
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-4">
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <div class="summary-value">
+                        15.42 kWh
+                    </div>
+                    <div class="summary-label">Today's Usage</div>
+                    <div class="mt-2">
+                        <span class="negative"><i class="bi bi-arrow-up"></i> 8.5%</span>
+                        vs yesterday
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <div class="summary-value">
+                        9.75 kWh
+                    </div>
+                    <div class="summary-label">Solar Production</div>
+                    <div class="mt-2">
+                        <span class="positive"><i class="bi bi-arrow-up"></i> 12.3%</span>
+                        vs yesterday
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <div class="summary-value">
+                        $3.08
+                    </div>
+                    <div class="summary-label">Estimated Cost</div>
+                    <div class="small mt-2">
+                        Current rate: $0.20/kWh
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <div class="summary-value">
+                        72%
+                    </div>
+                    <div class="summary-label">Battery Level</div>
+                    <div class="battery-status mt-2">
+                        <div class="battery-progress"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="usageChartTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="daily-tab" data-bs-toggle="tab" data-bs-target="#daily" type="button">Daily</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="hourly-tab" data-bs-toggle="tab" data-bs-target="#hourly" type="button">Hourly Pattern</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="usageChartTabsContent">
+                            <div class="tab-pane fade show active" id="daily" role="tabpanel">
+                                <div id="dailyUsageChart" class="chart-container"></div>
+                            </div>
+                            <div class="tab-pane fade" id="hourly" role="tabpanel">
+                                <div id="hourlyPatternChart" class="chart-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Device Breakdown</span>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="breakdownDropdown" data-bs-toggle="dropdown">
+                                Today
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#">Today</a></li>
+                                <li><a class="dropdown-item" href="#">Yesterday</a></li>
+                                <li><a class="dropdown-item" href="#">This Week</a></li>
+                                <li><a class="dropdown-item" href="#">This Month</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="deviceBreakdownChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts and Recommendations Row -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card alert-card">
+                    <div class="card-header bg-warning text-dark">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Recent Alerts
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">High energy usage detected in HVAC system</h6>
+                                    <small class="text-muted">10:45 AM</small>
+                                </div>
+                                <span class="badge bg-danger">
+                                    High
+                                </span>
+                            </div>
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Solar production lower than expected</h6>
+                                    <small class="text-muted">09:30 AM</small>
+                                </div>
+                                <span class="badge bg-warning">
+                                    Medium
+                                </span>
+                            </div>
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Battery fully charged at 8:15 AM</h6>
+                                    <small class="text-muted">08:20 AM</small>
+                                </div>
+                                <span class="badge bg-info">
+                                    Info
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-end">
+                        <a href="#" class="btn btn-sm btn-outline-warning">View All Alerts</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card alert-card">
+                    <div class="card-header bg-info text-white">
+                        <i class="bi bi-lightbulb-fill"></i> Recommendations
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Adjust thermostat by 2°F during peak hours</h6>
+                                    <small class="text-muted">11:30 AM</small>
+                                </div>
+                                <span class="badge bg-success">Save 1.8 kWh</span>
+                                <button class="btn btn-sm btn-outline-success mt-2">Mark as Implemented</button>
+                            </div>
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Schedule pool pump to run during solar production hours</h6>
+                                    <small class="text-muted">10:15 AM</small>
+                                </div>
+                                <span class="badge bg-success">Save 2.5 kWh</span>
+                                <button class="btn btn-sm btn-outline-success mt-2">Mark as Implemented</button>
+                            </div>
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Replace 3 incandescent bulbs with LEDs</h6>
+                                    <small class="text-muted">Yesterday</small>
+                                </div>
+                                <span class="badge bg-success">Save 0.7 kWh</span>
+                                <button class="btn btn-sm btn-outline-success mt-2">Mark as Implemented</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-end">
+                        <a href="#" class="btn btn-sm btn-outline-info">View All Recommendations</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Devices and Battery Status Row -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-plug-fill"></i> Device Status
+                    </div>
+                    <div class="card-body">
+                        <div class="device-status">
+                            <i class="bi bi-thermometer-half device-icon"></i>
+                            <div class="flex-grow-1">
+                                <strong>HVAC System</strong>
+                                <div class="form-check form-switch d-inline-block ms-3">
+                                    <input class="form-check-input device-toggle" type="checkbox" checked>
+                                </div>
+                            </div>
+                            <span class="badge bg-success">On</span>
+                        </div>
+                        <div class="device-status">
+                            <i class="bi bi-droplet device-icon"></i>
+                            <div class="flex-grow-1">
+                                <strong>Water Heater</strong>
+                                <div class="form-check form-switch d-inline-block ms-3">
+                                    <input class="form-check-input device-toggle" type="checkbox" checked>
+                                </div>
+                            </div>
+                            <span class="badge bg-success">On</span>
+                        </div>
+                        <div class="device-status">
+                            <i class="bi bi-lightning-charge device-icon"></i>
+                            <div class="flex-grow-1">
+                                <strong>Pool Pump</strong>
+                                <div class="form-check form-switch d-inline-block ms-3">
+                                    <input class="form-check-input device-toggle" type="checkbox">
+                                </div>
+                            </div>
+                            <span class="badge bg-secondary">Off</span>
+                        </div>
+                        <div class="device-status">
+                            <i class="bi bi-lightbulb device-icon"></i>
+                            <div class="flex-grow-1">
+                                <strong>Kitchen Lights</strong>
+                                <div class="form-check form-switch d-inline-block ms-3">
+                                    <input class="form-check-input device-toggle" type="checkbox" checked>
+                                </div>
+                            </div>
+                            <span class="badge bg-success">On</span>
+                        </div>
+                        <div class="device-status">
+                            <i class="bi bi-tv device-icon"></i>
+                            <div class="flex-grow-1">
+                                <strong>Entertainment System</strong>
+                                <div class="form-check form-switch d-inline-block ms-3">
+                                    <input class="form-check-input device-toggle" type="checkbox">
+                                </div>
+                            </div>
+                            <span class="badge bg-secondary">Off</span>
+                        </div>
+                    </div>
+                    <div class="card-footer text-end">
+                        <a href="#" class="btn btn-sm btn-outline-primary">Manage Devices</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-battery-charging"></i> Battery Status
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <div class="d-flex justify-content-between">
+                                    <span>Current Level:</span>
+                                    <strong>72%</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Status:</span>
+                                    <strong>Discharging</strong>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex justify-content-between">
+                                    <span>Time Remaining:</span>
+                                    <strong>5h 42m</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Last Charge:</span>
+                                    <strong>8:15 AM</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="batteryTrendChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize charts when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Daily Usage Chart - Last 7 days data
+            var dailyUsageData = {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                consumption: [12.5, 13.2, 14.8, 13.7, 15.4, 16.2, 17.8],
+                solar: [8.2, 9.1, 9.5, 8.7, 9.8, 10.2, 11.5],
+                net: [4.3, 4.1, 5.3, 5.0, 5.6, 6.0, 6.3]
+            };
+            
+            var dailyUsageTrace1 = {
+                x: dailyUsageData.labels,
+                y: dailyUsageData.consumption,
+                name: 'Consumption',
+                type: 'bar',
+                marker: {color: '#dc3545'}
+            };
+            var dailyUsageTrace2 = {
+                x: dailyUsageData.labels,
+                y: dailyUsageData.solar,
+                name: 'Solar Production',
+                type: 'bar',
+                marker: {color: '#ffc107'}
+            };
+            var dailyUsageTrace3 = {
+                x: dailyUsageData.labels,
+                y: dailyUsageData.net,
+                name: 'Grid Usage',
+                type: 'bar',
+                marker: {color: '#6c757d'}
+            };
+            var dailyUsageLayout = {
+                barmode: 'stack',
+                title: 'Daily Energy Usage (kWh)',
+                showlegend: true,
+                legend: {orientation: 'h', y: -0.2}
+            };
+            Plotly.newPlot('dailyUsageChart', [dailyUsageTrace1, dailyUsageTrace2, dailyUsageTrace3], dailyUsageLayout);
+
+            // Hourly Pattern Chart - Today's hourly usage
+            var hourlyPatternData = {
+                labels: Array.from({length: 24}, (_, i) => i + ':00'),
+                values: [0.2, 0.1, 0.1, 0.1, 0.2, 0.3, 0.5, 0.8, 1.2, 1.0, 0.9, 0.8, 
+                         0.7, 0.6, 0.7, 0.9, 1.2, 1.5, 1.8, 1.6, 1.4, 1.2, 0.8, 0.4]
+            };
+            
+            var hourlyTrace = {
+                x: hourlyPatternData.labels,
+                y: hourlyPatternData.values,
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: {shape: 'spline', color: '#0d6efd'},
+                marker: {size: 8}
+            };
+            var hourlyLayout = {
+                title: 'Hourly Consumption Pattern (kWh)',
+                xaxis: {title: 'Hour of Day'},
+                yaxis: {title: 'Usage (kWh)'}
+            };
+            Plotly.newPlot('hourlyPatternChart', [hourlyTrace], hourlyLayout);
+
+            // Device Breakdown Chart
+            var deviceBreakdownData = {
+                labels: ['HVAC', 'Water Heater', 'Refrigerator', 'Lighting', 'Electronics', 'Other'],
+                values: [5.2, 3.8, 2.1, 1.9, 1.7, 0.8]
+            };
+            
+            var deviceTrace = {
+                labels: deviceBreakdownData.labels,
+                values: deviceBreakdownData.values,
+                type: 'pie',
+                textinfo: 'label+percent',
+                hoverinfo: 'label+value',
+                textposition: 'inside',
+                marker: {
+                    colors: ['#0d6efd', '#20c997', '#fd7e14', '#6f42c1', '#e83e8c', '#28a745']
+                }
+            };
+            var deviceLayout = {
+                title: 'Energy Usage by Device (Today)',
+                showlegend: false
+            };
+            Plotly.newPlot('deviceBreakdownChart', [deviceTrace], deviceLayout);
+
+            // Battery Trend Chart
+            var batteryTimestamps = [
+                "00:00", "02:00", "04:00", "06:00", "08:00", 
+                "10:00", "12:00", "14:00", "16:00", "18:00", 
+                "20:00", "22:00"
+            ];
+            var batteryLevels = [45, 42, 38, 35, 100, 92, 85, 78, 75, 72, 68, 65];
+            
+            var batteryTrace = {
+                x: batteryTimestamps,
+                y: batteryLevels,
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: {shape: 'spline', color: '#20c997'},
+                marker: {size: 6}
+            };
+            var batteryLayout = {
+                title: 'Battery Level Trend',
+                xaxis: {title: 'Time'},
+                yaxis: {title: 'Battery Level (%)', range: [0, 100]}
+            };
+            Plotly.newPlot('batteryTrendChart', [batteryTrace], batteryLayout);
+
+            // Device toggle functionality
+            $('.device-toggle').change(function() {
+                var isChecked = $(this).is(':checked');
+                var badge = $(this).closest('.device-status').find('.badge');
+                
+                // Simulate API call with setTimeout
+                setTimeout(function() {
+                    if (isChecked) {
+                        badge.removeClass('bg-secondary').addClass('bg-success').text('On');
+                    } else {
+                        badge.removeClass('bg-success').addClass('bg-secondary').text('Off');
+                    }
+                }, 300);
+            });
+        });
+    </script>
+</body>
+</html>

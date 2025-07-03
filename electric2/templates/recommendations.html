@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Recommendations{% endblock %}
+
+{% block header %}Energy Recommendations{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Your Recommendations</h5>
+        <form method="POST" action="{{ url_for('generate_recommendations_api') }}" class="d-inline">
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-arrow-repeat"></i> Generate New
+            </button>
+        </form>
+    </div>
+    <div class="card-body">
+        <div class="list-group">
+            {% for recommendation in recommendations %}
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6>{{ recommendation.message }}</h6>
+                        <small class="text-muted">{{ recommendation.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                        {% if recommendation.impact %}
+                        <span class="badge bg-success ms-2">Saves ~{{ "%.1f"|format(recommendation.impact) }} kWh/day</span>
+                        {% endif %}
+                    </div>
+                    {% if not recommendation.implemented %}
+                    <form method="POST" action="{{ url_for('implement_recommendation', rec_id=recommendation.id) }}">
+                        <button type="submit" class="btn btn-sm btn-success">Mark as Implemented</button>
+                    </form>
+                    {% else %}
+                    <span class="badge bg-secondary">Implemented</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <p>No recommendations available.</p>
+                <form method="POST" action="{{ url_for('generate_recommendations_api') }}">
+                    <button type="submit" class="btn btn-primary">Generate Recommendations</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
